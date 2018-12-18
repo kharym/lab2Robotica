@@ -1,11 +1,10 @@
-//youtube.com/TARUNKUMARDAHAKE
-//facebook.com/TARUNKUMARDAHAKE
-
-#include <PID_v1.h>
+//importación de librerías
+#include <PID_v1.h>                            
 #include <LMotorController.h>
 #include <SoftwareSerial.h>
 #include "I2Cdev.h"
-#include "MPU6050_6Axis_MotionApps20.h"
+#include "MPU6050_6Axis_MotionApps20.h"-
+
 
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
     #include "Wire.h"
@@ -13,9 +12,8 @@
 
 #define MIN_ABS_SPEED 20
 
+//instancia de sensor inercial
 MPU6050 mpu;
-
-SoftwareSerial BT(12,11);  //RX|TX
 
 // MPU control/status vars
 bool dmpReady = false; // set true if DMP init was successful
@@ -36,7 +34,7 @@ double setpoint = originalSetpoint;
 double movingAngleOffset = 0.1;
 double input, output;
 
-//adjust these values to fit your own design
+//Asignación de valores del PID 
 double Kp = 85 ;   // entre  y 100 
 double Ki = 155; // entre 0 y 200
 double Kd = 1.8; // entre 0 y 2
@@ -45,26 +43,33 @@ PID pid(&input, &output, &setpoint, Kp, Ki, Kd, DIRECT);
 
 double motorSpeedFactorLeft = 0.44;
 double motorSpeedFactorRight = 0.36;
-//MOTOR CONTROLLER
+
+//controladores del puente H
 int ENA = 5;
 int IN1 = 6;
 int IN2 = 7;
 int IN3 = 8;
 int IN4 = 9;
 int ENB = 10;
+
 LMotorController motorController(ENA, IN1, IN2, ENB, IN3, IN4, motorSpeedFactorLeft, motorSpeedFactorRight);
 
 volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
+
 void dmpDataReady()
 {
-mpuInterrupt = true;
+  mpuInterrupt = true;
 }
 
-int estado = 2;
-String text ="";
+//instancia de dispositivo Bluetooth  con conexion en pines 12 para RX y 11 para TX
+SoftwareSerial BT(12,11);  //RX|TX
+ 
+int estado = 2;  // se instancia una variable para almacenar el estado de los botones de la app
+String text =""; // se instancia una varibale para almacenar el valor de pk, pd y pi obtenido desde la app
 
 void setup(){
-    BT.begin(9600);
+   
+    BT.begin(9600); 
     Serial.begin(9600);
     Serial.print("inicia BT");
     
@@ -116,21 +121,22 @@ if (devStatus == 0){
     Serial.println(F(")"));
     }
 }
+
+//funciones para el desplazamiento del robot 
+
 void avanzar()
 {
- //Gira el motor1 en sentido horario (para el lado del UNO de la placa)
   digitalWrite(IN1,HIGH);
   digitalWrite(IN2,LOW); 
- //Gira motor2 en sentido horario
   digitalWrite(IN3,HIGH);
   digitalWrite(IN4,LOW); 
 
-  //Setea la velocidad a 200 en el rango posible de 0-255
+  //Setea la velocidad en el rango posible de 0-255
   analogWrite(ENA,100);
-  //Setea la velocidad a 200 en el rango posible de 0-255
+  //Setea la velocidad en el rango posible de 0-255
   analogWrite(ENB,100);
 
-  delay(1000); // Se gira los motores por 3 segundos.*/
+  /*delay(1000); // Se gira los motores por 3 segundos.*/
 
   analogWrite(ENA,0);
   analogWrite(ENB,0);
@@ -141,15 +147,12 @@ void retroceder()
   digitalWrite(IN2,HIGH);
   digitalWrite(IN3,LOW);
   digitalWrite(IN4,HIGH); 
-  //Setea la velocidad a 50 en el rango posible de 0-255
+  //Setea la velocidad en el rango posible de 0-255
   analogWrite(ENA,70);
-  //Setea la velocidad a 50 en el rango posible de 0-255
+  //Setea la velocidad en el rango posible de 0-255
   analogWrite(ENB,70);
 
-  delay(1000); // Se gira los motores por 3 segundos.*/
-
-  analogWrite(ENA,0);
-  analogWrite(ENB,0);
+ //delay(1000); // Se gira los motores por 3 segundos.
 }
 
 void izquierda()
@@ -164,9 +167,6 @@ void izquierda()
   analogWrite(ENB,70);
   
   delay(1000);
-  
-  analogWrite(ENA,0);
-  analogWrite(ENB,0);
 }
 
 void derecha()
@@ -175,21 +175,19 @@ void derecha()
   digitalWrite (IN2,LOW);
   digitalWrite(IN3,LOW);
   digitalWrite(IN4,LOW); 
-   //Setea la velocidad a 20 en el rango posible de 0-255
+   //Setea la velocidad en el rango posible de 0-255
   analogWrite(ENA,70);
-  //Setea la velocidad a 200 en el rango posible de 0-255
+  //Setea la velocidad en el rango posible de 0-255
   analogWrite(ENB,0);
   
   delay(1000);
-  
-  analogWrite(ENA,0);
-  analogWrite(ENB,0);
 }
 
 
 void loop()
 {
     if(BT.available()>0){     // se comprueba que el dispositivo bluetooth este conectado correctamente 
+       
         Serial.print("holas");
         estado=BT.read();       // se lee codigo del boton presionado por la aplicacion 
         text = BT.readString(); //se lee valor ingresado al presionar boton en la app. 
@@ -204,6 +202,8 @@ void loop()
         //Estado 69 boton atras
         //Estado 70 boton izq
         //Estado 71 boton derecha
+        
+        // Distintas opciones dependiendo del estado que se obtenga desde la app
         switch(estado){
             case 65:
               Kp = text.toInt();
